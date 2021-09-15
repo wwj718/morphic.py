@@ -47,6 +47,8 @@ pygame.init()
 version = '2009-Nov-06'
 TRANSPARENT = pygame.Color(1, 1, 1)
 
+FONTNAME = "PingFang"
+
 class Point:
 
     def __init__(self, x, y):
@@ -143,7 +145,7 @@ class Point:
         "direction must be 'right', 'left' or 'pi'"
         offset = self - center
         if direction == 'right':
-            return Point(-offset.y, offset,y) + center
+            return Point(-offset.y, offset.y) + center
         elif direction == 'left':
             return Point(offset.y, -offset.y) + center
         elif direction == 'pi':
@@ -1589,7 +1591,7 @@ class Menu(RoundedBox):
         if self.label != None:
             self.label.delete()
         text = Text(self.title,
-                    fontname="verdana",
+                    fontname=FONTNAME, # pingfang
                     fontsize=10,
                     bold=True,
                     italic=False,
@@ -1751,7 +1753,7 @@ class Trigger(Morph):
     def __init__(self, target=None,
                  action=None,
                  label=None,
-                 fontname="verdana",
+                 fontname=FONTNAME,
                  fontsize=10,
                  bold=False,
                  italic=False):
@@ -1933,7 +1935,7 @@ class String(Morph):
                       
     def __init__(self,
                  text,
-                 fontname="verdana",
+                 fontname=FONTNAME,
                  fontsize=12,
                  bold=False,
                  italic=False):
@@ -2045,26 +2047,28 @@ class TextCursor(Blinker):
     #TextCursor event-processing:
 
     def process_keyboard_event(self, event):
-        code = event.dict["key"]
-        if code == 276:
+        # code = event.dict["key"]
+        code = event.key
+        if code == pygame.K_LEFT:
             self.go_left()
-        elif code == 275:
+        elif code == pygame.K_RIGHT:
             self.go_right()
-        elif code == 278:
+        elif code == pygame.K_HOME:
             self.go_home()
-        elif code == 279:
+        elif code == pygame.K_END:
             self.goto_end()
-        elif code == 127:
+        elif code == pygame.K_DELETE:
             self.delete_right()
-        elif code == 8:
+        elif code == pygame.K_BACKSPACE:
             self.delete_left()
-        elif code == 13:
+        elif code == pygame.K_RETURN:
             self.accept()
-        elif code == 27:
+        elif code == pygame.K_ESCAPE:
             self.cancel()
-        elif 31 < code < 128:
+        elif pygame.K_SPACE <= code < pygame.KMOD_RCTRL: # ?
             self.insert(event.dict["unicode"])
-
+        else:
+            pass
     #TextCursor navigation:
 
     def goto(self, newpos):
@@ -2142,7 +2146,7 @@ class Text(Morph):
 
     def __init__(self,
                  text,
-                 fontname="verdana",
+                 fontname=FONTNAME,
                  fontsize=12,
                  bold=False,
                  italic=False,
@@ -2349,11 +2353,15 @@ class Hand(Morph):
         pass
 
     def process_mouse_event(self, event):
-        if event.type == 4:
+        # print(event)
+        if event.type == pygame.MOUSEMOTION:
+        # if event.type == 4:
             self.process_mouse_move(event)
-        elif event.type == 5:
+        # elif event.type == 5:
+        elif event.type == pygame.MOUSEBUTTONDOWN:
             self.process_mouse_down(event)
-        elif event.type == 6:
+        # elif event.type == 6:
+        elif event.type == pygame.MOUSEBUTTONUP:
             self.process_mouse_up(event)
 
     def morph_at_pointer(self):
@@ -2437,6 +2445,7 @@ class Hand(Morph):
                 pass
 
     def process_mouse_up(self, event):
+        print(event.pos)
         if self.children != []:
             self.drop()
         else:
@@ -2448,7 +2457,7 @@ class Hand(Morph):
             for m in morph.all_parents():
                 if isinstance(m, Menu) or isinstance(m, Widget):
                     is_menu_click = True
-
+            
             if event.dict["button"] == 3 and not is_menu_click:
                 menu = morph.context_menu()
                 if menu != None:
@@ -2541,7 +2550,7 @@ class StringField(Frame, Widget):
 
     def __init__(self, default='',
                  minwidth=100,
-                 fontname="verdana",
+                 fontname=FONTNAME,
                  fontsize=12,
                  bold=False,
                  italic=False):
@@ -2834,14 +2843,19 @@ a lively GUI for Python\ninspired by Squeak\nbased on Pygame\n\
 
     def step_frame(self):
         event = pygame.event.poll()
-        if event.type != 0:
-            if event.type in range(4, 7):
+        # https://riptutorial.com/pygame/example/18046/event-loop
+        if event.type != pygame.NOEVENT:
+            print(event.type) # 好像有变化
+
+            # if event.type in range(4, 7):
+            if event.type in [pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP, pygame.MOUSEMOTION]:
                 self.hand.process_mouse_event(event)
-            elif event.type == 2 and self.keyboard_receiver != None:
+            # elif event.type == 2 and self.keyboard_receiver != None:
+            elif event.type == pygame.KEYDOWN and self.keyboard_receiver != None:
                 self.keyboard_receiver.process_keyboard_event(event)
-            elif event.type == 12:
+            elif event.type == pygame.QUIT:
                 return "quit"
-            elif event.type == 16:
+            elif event.type == pygame.RESIZABLE: # RESIZABLE
                 self.change_extent_to(Point(event.size[0],
                                             event.size[1]))
         super(World, self).step_frame()
@@ -2872,6 +2886,5 @@ a lively GUI for Python\ninspired by Squeak\nbased on Pygame\n\
         self.update_broken()
         if self.fps > 0:
             self.wait_for_next_frame()
-
-world = World()
+world = World() # todo full
 world.loop()
